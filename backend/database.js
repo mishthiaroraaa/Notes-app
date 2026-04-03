@@ -1,12 +1,13 @@
 const sqlite3 = require('sqlite3');
 const { open } = require('sqlite');
+const path = require('path');
 
 let dbPromise;
 
 async function initDB() {
     try {
         dbPromise = open({
-            filename: './notes.db',
+            filename: path.join(__dirname, 'notes.db'),
             driver: sqlite3.Database
         });
 
