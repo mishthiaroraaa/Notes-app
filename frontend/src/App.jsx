@@ -4,6 +4,10 @@ import NoteItem from './components/NoteItem';
 import NoteModal from './components/NoteModal';
 
 let BASE_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/notes';
+// Robustness check: Ensure it has a protocol (http/https)
+if (BASE_API_URL && !BASE_API_URL.startsWith('http')) {
+    BASE_API_URL = `https://${BASE_API_URL}`;
+}
 // Robustness check: Ensure it ends with /api/notes
 if (BASE_API_URL && !BASE_API_URL.endsWith('/api/notes')) {
     BASE_API_URL = BASE_API_URL.endsWith('/') ? `${BASE_API_URL}api/notes` : `${BASE_API_URL}/api/notes`;
