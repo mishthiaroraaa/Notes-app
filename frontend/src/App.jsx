@@ -3,23 +3,32 @@ import { Search, Plus, Book } from 'lucide-react';
 import NoteItem from './components/NoteItem';
 import NoteModal from './components/NoteModal';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/notes';
+let BASE_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/notes';
+// Robustness check: Ensure it ends with /api/notes
+if (BASE_API_URL && !BASE_API_URL.endsWith('/api/notes')) {
+    BASE_API_URL = BASE_API_URL.endsWith('/') ? `${BASE_API_URL}api/notes` : `${BASE_API_URL}/api/notes`;
+}
+const API_URL = BASE_API_URL;
 
 function App() {
   const [notes, setNotes] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingNote, setEditingNote] = useState(null);
+  const [error, setError] = useState(null);
 
   // Fetch Notes
   const fetchNotes = async (search = '') => {
     try {
       const url = search ? `${API_URL}?search=${encodeURIComponent(search)}` : API_URL;
       const res = await fetch(url);
+      if (!res.ok) throw new Error(`Server responded with ${res.status}`);
       const data = await res.json();
       setNotes(data);
+      setError(null);
     } catch (err) {
       console.error("Failed to fetch notes:", err);
+      setError("Baap re! Server se connection nahi ho paa raha. Check kijiye ki VERCEL variable me Railway ka sahi link hai.");
     }
   };
 
@@ -127,6 +136,13 @@ function App() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-600 p-4 rounded-xl text-center font-medium">
+            {error}
+          </div>
+        )}
 
         {/* Notes Grid */}
         {notes.length === 0 ? (
