@@ -4,10 +4,15 @@ const fs = require('fs');
 const path = require('path');
 
 const app = express();
-app.use(cors());
+app.use(cors({ origin: '*' })); // Allow all sources
 app.use(express.json());
 
 const DB_FILE = path.join(__dirname, 'notes.json');
+
+// Health check to verify Railway is UP
+app.get('/', (req, res) => {
+    res.send("Backend is Live and Running!");
+});
 
 // Initialize JSON database
 function getNotes() {
