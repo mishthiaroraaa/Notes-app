@@ -1,94 +1,104 @@
 const express = require('express');
 const cors = require('cors');
-const { initDB, getDB } = require('./database');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-initDB().then(() => {
-    
-    // 1. GET: Fetch all notes (with optional search by title)
-    app.get('/api/notes', async (req, res) => {
-        try {
-            const { search } = req.query;
-            const db = await getDB();
-            
-            let query = 'SELECT * FROM notes ORDER BY created_at DESC';
-            let params = [];
+const DB_FILE = path.join(__dirname, 'notes.json');
 
-            if (search) {
-                query = 'SELECT * FROM notes WHERE title LIKE ? ORDER BY created_at DESC';
-                params = [`%${search}%`];
-            }
+// Initialize JSON database
+function getNotes() {
+    if (!fs.existsSync(DB_FILE)) {
+        return [];
+    }
+    const data = fs.readFileSync(DB_FILE, 'utf8');
+    return data ? JSON.parse(data) : [];
+}
 
-            const rows = await db.all(query, params);
-            res.json(rows);
-        } catch (error) {
-            console.error('Error fetching notes:', error);
-            res.status(500).json({ error: 'Failed to fetch notes' });
+function saveNotes(notes) {
+    fs.writeFileSync(DB_FILE, JSON.stringify(notes, null, 2));
+}
+
+// 1. GET: Fetch all notes
+app.get('/api/notes', (req, res) => {
+    try {
+        const { search } = req.query;
+        let notes = getNotes();
+        
+        notes.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+        if (search) {
+            const query = search.toLowerCase();
+            notes = notes.filter(n => n.title.toLowerCase().includes(query));
         }
-    });
+        res.json(notes);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch notes' });
+    }
+});
 
-    // 2. POST: Create a new note
-    app.post('/api/notes', async (req, res) => {
-        try {
-            const { title, content } = req.body;
-            if (!title || !content) return res.status(400).json({ error: 'Title and content are required' });
+// 2. POST: Create a new note
+app.post('/api/notes', (req, res) => {
+    try {
+        const { title, content } = req.body;
+        if (!title || !content) return res.status(400).json({ error: 'Title and content are required' });
 
-            const db = await getDB();
-            const result = await db.run(
-                'INSERT INTO notes (title, content) VALUES (?, ?)',
-                [title, content]
-            );
-            
-            res.status(201).json({ id: result.lastID, title, content });
-        } catch (error) {
-            console.error('Error creating note:', error);
-            res.status(500).json({ error: 'Failed to create note' });
-        }
-    });
+        const notes = getNotes();
+        const newNote = {
+            id: Date.now(),
+            title,
+            content,
+            created_at: new Date().toISOString().replace('T', ' ').substring(0, 19)
+        };
+        notes.push(newNote);
+        saveNotes(notes);
+        
+        res.status(201).json(newNote);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to create note' });
+    }
+});
 
-    // 3. PUT: Update an existing note
-    app.put('/api/notes/:id', async (req, res) => {
-        try {
-            const { id } = req.params;
-            const { title, content } = req.body;
-            
-            if (!title || !content) return res.status(400).json({ error: 'Title and content are required' });
+// 3. PUT: Update an existing note
+app.put('/api/notes/:id', (req, res) => {
+    try {
+        const { id } = req.params;
+        const { title, content } = req.body;
+        
+        if (!title || !content) return res.status(400).json({ error: 'Title and content are required' });
 
-            const db = await getDB();
-            await db.run(
-                'UPDATE notes SET title = ?, content = ? WHERE id = ?',
-                [title, content, id]
-            );
-            
-            res.json({ message: 'Note updated successfully' });
-        } catch (error) {
-            console.error('Error updating note:', error);
-            res.status(500).json({ error: 'Failed to update note' });
-        }
-    });
+        const notes = getNotes();
+        const index = notes.findIndex(n => n.id === parseInt(id));
+        if (index === -1) return res.status(404).json({ error: 'Note not found' });
+        
+        notes[index].title = title;
+        notes[index].content = content;
+        saveNotes(notes);
+        
+        res.json({ message: 'Note updated successfully' });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to update note' });
+    }
+});
 
-    // 4. DELETE: Delete a note
-    app.delete('/api/notes/:id', async (req, res) => {
-        try {
-            const { id } = req.params;
-            const db = await getDB();
+// 4. DELETE: Delete a note
+app.delete('/api/notes/:id', (req, res) => {
+    try {
+        const { id } = req.params;
+        const notes = getNotes();
+        const filtered = notes.filter(n => n.id !== parseInt(id));
+        saveNotes(filtered);
+        
+        res.json({ message: 'Note deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to delete note' });
+    }
+});
 
-            await db.run('DELETE FROM notes WHERE id = ?', [id]);
-            res.json({ message: 'Note deleted successfully' });
-        } catch (error) {
-            console.error('Error deleting note:', error);
-            res.status(500).json({ error: 'Failed to delete note' });
-        }
-    });
-
-    const PORT = process.env.PORT || 3001;
-    app.listen(PORT, '0.0.0.0', () => {
-        console.log(`Backend Server is running on port ${PORT}`);
-    });
-
-}).catch(err => {
-    console.error("Failed to start server due to database issue.", err);
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Backend Server is running on port ${PORT}`);
 });
