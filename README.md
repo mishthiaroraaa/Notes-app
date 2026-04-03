@@ -1,6 +1,8 @@
 # Modern Notes App
-
 A clean, modern, and minimal Notes Application built using the React + Vite + Tailwind CSS frontend and Node.js + Express + MySQL backend.
+Frontend: https://notes-app-p7gu.vercel.app/
+Backend: https://notes-app-production-c489.up.railway.app/
+
 
 ## Features
 - **Create Notes**: Add new notes with a title and content.
