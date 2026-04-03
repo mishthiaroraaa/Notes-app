@@ -3,7 +3,7 @@ import { Search, Plus, Book } from 'lucide-react';
 import NoteItem from './components/NoteItem';
 import NoteModal from './components/NoteModal';
 
-const API_URL = 'http://localhost:3001/api/notes';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/notes';
 
 function App() {
   const [notes, setNotes] = useState([]);
