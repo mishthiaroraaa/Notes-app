@@ -70,6 +70,28 @@ const server = http.createServer((req, res) => {
             return;
         }
 
+                if (method === 'PUT') {
+                                const parts = pathname.split('/');
+                                const id = parseInt(parts[parts.length - 1]);
+                                let body = '';
+                                req.on('data', chunk => { body += chunk.toString(); });
+                                req.on('end', () => {
+                                                    try {
+                                                                            const { title, content } = JSON.parse(body);
+                                                                            const index = notes.findIndex(n => n.id === id);
+                                                                            if (index !== -1) {
+                                                                                                        notes[index] = { ...notes[index], title, content };
+                                                                                                        saveNotes(notes);
+                                                                                                        sendResponse(res, 200, notes[index]);
+                                                                                } else {
+                                                                                                        sendResponse(res, 404, { error: 'Note not found' });
+                                                                                }
+                                                    } catch (e) { sendResponse(res, 400, { error: 'Invalid JSON' }); }
+                                });
+                                return;
+                }
+
+        
         // DELETE: Delete (e.g., /api/notes/123)
         if (method === 'DELETE') {
             const id = parseInt(url.split('/').pop());
