@@ -28,7 +28,7 @@ function App() {
       setError(null);
     } catch (err) {
       console.error("Failed to fetch notes:", err);
-      setError("Baap re! Server se connection nahi ho paa raha. Check kijiye ki VERCEL variable me Railway ka sahi link hai.");
+      setError(`Connection Error! Could not reach the backend at: ${API_URL}. Please verify your Vercel Environment Variable (VITE_API_URL).`);
     }
   };
 
